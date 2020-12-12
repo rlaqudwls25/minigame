@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        *{
+            padding: 0; margin: 0;
+        }
+        canvas{
+             display: block; margin: 0 auto;
+        }
+    </style>
+
+</head>
+<body>
+
+<canvas id="myCanvas" width="480" height="320"></canvas>
+
+<script>
+    var canvas = document.getElementById("myCanvas"); //myCanvas 태깅
+    var ctx = canvas.getContext("2d"); // canvas 요소가 있으면 getContext() 메서드를 이용하여 드로잉컨텍스트에 엑세스 가능
+
+    var x = canvas.width/2;
+    var y = canvas.height-30;
+    var dx = 2;
+    var dy = -2;
+
+    var paddleHeight = 10;
+    var paddleWidth = 75;
+    var paddleX = (canvas.width-paddleWidth)/2;
+
+    var rightPressed = false;
+    var leftPressed = false;
+
+    var brickRowCount = 3; // 열의 수
+    var brickColumnCount = 5; //행의 수
+    var brickWidth = 75;
+    var brickHeight = 20;
+    var brickPadding = 10;
+    var brickOffsetTop = 30; // 모서리에 닿지 않게 할 변수
+    var brickOffsetLeft = 30;
+
+    var score = 0;
+
+
+    var bricks = [];
+    for(var c = 0; c<brickColumnCount; c++ ){
+        bricks[c] = [];
+        for(var r=0; r<brickRowCount; r++){
+            bricks[c][r] = { x: 0, y: 0 , status:1 };
+        }
+    }
+
+    //벽돌 그리는 함수
+    function drawBricks(){
+        for(var c=0; c<brickColumnCount; c++){
+            for(var r=0; r<brickRowCount; r++){
+                //1이면 벽돌을 그리고 0이면 이미 공이 없앤 벽돌이므로 화면에 그리지말아라
+                if(bricks[c][r].status == 1) {
+                    var bricksX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
+                    var bricksY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
+                    bricks[c][r].x = bricksX;
+                    bricks[c][r].y = bricksY;
+                    ctx.beginPath();
+                    ctx.rect(bricksX, bricksY, brickWidth, brickHeight);
+                    ctx.fillStyle = "black";
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            }
+        }
+    }
+    var ballRadius = 10;
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+
+    function keyDownHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = true;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = true;
+        }
+    }
+
+    function keyUpHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = false;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = false;
+        }
+    }
+
+    function drawBall(){
+        ctx.beginPath();
+        ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = "black";
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    //공을 치기 위헌 paddle함수
+    function drawPaddle(){
+        ctx.beginPath();
+        ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+        ctx.fillStyle = "black";
+        ctx.fill();
+        ctx.closePath();
+    }
+    //벽돌 꺠기 스코어
+    function drawScore() {
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#0095DD";
+        ctx.fillText("Score: "+score, 8, 20);
+    }
+    //충돌 감지 함수
+    function collisionDetection() {
+        for (var c = 0; c < brickColumnCount; c++) {
+            for (var r = 0; r < brickRowCount; r++) {
+                //벽돌 객체를 감지하는 변수 b
+                var b = bricks[c][r];
+                if (b.status == 1) {
+                    if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
+                        dy = -dy;
+                        b.status = 0;
+                        score++;
+                        if (score == brickRowCount * brickColumnCount) {
+                            alert("잘했습니다 !!");
+                            document.location.reload();
+                            clearInterval(interval);
+
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+        function draw() {
+            //무한히 작동하는 setInterval 함수 덕에 draw() 함수는 우리가 멈추기 전 까지 10밀리초마다 영원히 호출
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //공을 그릴 때 이전 프레임을 지워주기 않아서 공이 흔적이 남는다.
+            drawBricks();
+            drawBall();
+            drawPaddle();
+            drawScore();
+            collisionDetection();
+
+
+            // 위 아래 방향으로 튕기기
+            // 아래 닿으면 게임 오버
+            if (y + dy < ballRadius) {
+                dy = -dy;
+            } else if (y + dy > canvas.height - ballRadius) {
+                if (x > paddleX && x < paddleX + paddleWidth) {
+                    dy = -dy;
+                } else {
+                    alert("게임 오버");
+                    document.location.reload();
+                    clearInterval(interval);
+                }
+            }
+
+            //좌 우로 튕기기
+            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+                dx = -dx;
+            }
+
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 7;
+            } else if (leftPressed && paddleX > 0) {
+                paddleX -= 7;
+            }
+
+            x += dx;
+            y += dy;
+
+        }
+
+    
+    var interval = setInterval(draw, 10); // 타이밍 함수 = 함수를 몇번이고 계속 반복해서 실행 가능능
+
+
+   //  // beinPath()  ~  closePath() 사이에 모든 명령어가 들어감
+   //  // rect() = 정사각형
+   // ctx.beginPath();
+   //  ctx.rect(30, 50, 70, 70);
+   //  ctx.fillStyle = "#FF0000";
+   //  ctx.fill();
+   //  ctx.closePath();
+   //
+   //  // arc() 원의 중심을 가리키는 x와 y좌표 , 원의 반지름 , 시작 각도와 끝 각도, false = 시계방향 true = 반시계방향
+   //  ctx.beginPath();
+   //  ctx.arc(240, 160, 20, 0, Math.PI*2, false);
+   //  ctx.fillStyle = "green";
+   //  ctx.fill();
+   //  ctx.closePath();
+   //
+   //  ctx.beginPath();
+   //  ctx.rect(160, 10, 100, 40);
+   //  ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
+   //  ctx.stroke(); //원의 외곽선 색상 부여
+   //  ctx.closePath();
+</script>
+
+</body>
+</html>
